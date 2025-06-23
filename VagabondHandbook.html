@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Wanderer's Interactive Handbook</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F5F5F4;
+            color: #44403C;
+        }
+        .nav-item.active {
+            background-color: #D97706;
+            color: white;
+        }
+        .nav-item {
+            transition: all 0.2s ease-in-out;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .tab-button.active {
+            border-bottom: 2px solid #D97706;
+            color: #D97706;
+        }
+        .card-expandable {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+    <!-- Chosen Palette: Earthy Neutrals -->
+    <!-- Application Structure Plan: A task-oriented, single-page dashboard design. The user is greeted with the core philosophy and then uses a main icon-based navigation bar (Move, Shelter, Sustain, Earn, Beware) to explore different survival domains. This structure is chosen over a linear report format to empower the user to quickly access the information most relevant to their immediate needs, facilitating decision-making and risk assessment. Each section uses interactive elements like charts and clickable cards to present comparative data and detailed information on demand, creating a more engaging and less overwhelming user flow. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Transportation comparison table -> Goal: Compare methods on multiple axes. -> Viz: Interactive Radar Chart (Chart.js). -> Interaction: Buttons for each method update a detail panel. -> Justification: Radar charts are superior for comparing multiple quantitative attributes across several items simultaneously. This makes the trade-offs between risk, speed, and cost immediately apparent.
+        - Report Info: Income stream comparison table -> Goal: Compare earning methods. -> Viz: Horizontal Bar Chart (Chart.js) & interactive table. -> Interaction: Hovering on chart & clicking table rows reveals details. -> Justification: A bar chart effectively compares potential vs. time, while the table provides detailed pros/cons, especially the crucial warnings about unreliable gig apps.
+        - Report Info: Shelter & Survival sections -> Goal: Organize and present actionable strategies. -> Viz: Card and Tab-based layouts (HTML/Tailwind/JS). -> Interaction: Clicking cards/tabs reveals detailed content. -> Justification: Breaks down dense text into digestible, user-initiated chunks, preventing information overload and improving scannability.
+        - Report Info: Legal dangers & hostile architecture -> Goal: Warn users effectively. -> Viz: Stark, text-focused cards and lists (HTML/Tailwind). -> Interaction: Simple reveals. -> Justification: A minimalist, serious design for this section emphasizes the gravity of the information without distracting visualizations.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-stone-100 text-stone-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-stone-900 mb-2">The Wanderer's Interactive Handbook</h1>
+            <p class="text-lg text-stone-600">A 21st Century Guide to the Vagabonding Life</p>
+        </header>
+
+        <nav class="flex justify-center items-center flex-wrap gap-2 md:gap-4 mb-8 bg-white p-4 rounded-xl shadow-md sticky top-4 z-10">
+            <button data-section="ethos" class="nav-item flex-grow md:flex-grow-0 active text-center py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 cursor-pointer">
+                <span class="text-xl">🤔</span><span>The Ethos</span>
+            </button>
+            <button data-section="move" class="nav-item flex-grow md:flex-grow-0 text-center py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 cursor-pointer">
+                <span class="text-xl">🗺️</span><span>Move</span>
+            </button>
+            <button data-section="shelter" class="nav-item flex-grow md:flex-grow-0 text-center py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 cursor-pointer">
+                <span class="text-xl">🏠</span><span>Shelter</span>
+            </button>
+            <button data-section="sustain" class="nav-item flex-grow md:flex-grow-0 text-center py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 cursor-pointer">
+                <span class="text-xl">💧</span><span>Sustain</span>
+            </button>
+            <button data-section="earn" class="nav-item flex-grow md:flex-grow-0 text-center py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 cursor-pointer">
+                <span class="text-xl">💰</span><span>Earn</span>
+            </button>
+            <button data-section="beware" class="nav-item flex-grow md:flex-grow-0 text-center py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 cursor-pointer">
+                <span class="text-xl">⚖️</span><span>Beware</span>
+            </button>
+        </nav>
+
+        <main id="main-content">
+
+            <!-- Ethos Section -->
+            <section id="ethos" class="content-section active">
+                 <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold mb-2">The Vagabonding Mindset</h2>
+                    <p class="max-w-3xl mx-auto text-stone-600">This section introduces the philosophy of vagabonding. It's not just about travel; it's a value adjustment that prioritizes time, experience, and simplicity over possessions and money. Understanding this mindset is the first step on any wanderer's journey.</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8 text-center">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-2xl font-bold mb-3 text-amber-600">More Than a Traveler</h3>
+                        <p class="text-stone-600">Vagabonding is not a vacation; it's an uncommon way of looking at life. It's about becoming a "student of daily life," finding adventure in the mundane, and developing a friendly, active interest in people, places, and things. This internal shift is the foundation for a sustainable journey.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                         <h3 class="text-2xl font-bold mb-3 text-amber-600">The Real Currency</h3>
+                        <p class="text-stone-600">The most valuable currency on the road isn't money—it's time. By simplifying needs and reducing possessions, you invest in time to wander, learn, and connect. This makes long-term travel accessible to anyone, shifting life's goal from accumulation to experience.</p>
+                    </div>
+                </div>
+
+                <div class="mt-12">
+                     <div class="text-center mb-8">
+                        <h2 class="text-3xl font-bold mb-2">Choose Your Terrain</h2>
+                        <p class="max-w-3xl mx-auto text-stone-600">Your environment dictates your daily challenges and strategies. The choice between urban and rural wandering is a strategic decision that shapes the nature of your journey. Click each option to see the trade-offs.</p>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="bg-white p-6 rounded-lg shadow cursor-pointer" onclick="toggleTerrainInfo('urban')">
+                            <h3 class="text-2xl font-bold mb-2 flex items-center gap-3">🏙️ Urban Centers</h3>
+                            <div id="urban-info" class="text-stone-600 hidden mt-4">
+                                <p><strong class="text-green-600">Pros:</strong> High density of resources, public transport, social services, and gig work opportunities.</p>
+                                <p><strong class="text-red-600">Cons:</strong> High costs, congestion, and an increasingly hostile legal and architectural environment designed to prevent public resting.</p>
+                            </div>
+                        </div>
+                         <div class="bg-white p-6 rounded-lg shadow cursor-pointer" onclick="toggleTerrainInfo('rural')">
+                            <h3 class="text-2xl font-bold mb-2 flex items-center gap-3">🌲 Rural Areas</h3>
+                            <div id="rural-info" class="text-stone-600 hidden mt-4">
+                                <p><strong class="text-green-600">Pros:</strong> Space, solitude, more opportunities for free, low-impact shelter (like dispersed camping).</p>
+                                <p><strong class="text-red-600">Cons:</strong> Logistical challenges. Heavy reliance on hitchhiking or self-powered travel. Limited access to food banks, showers, and medical services.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Move Section -->
+            <section id="move" class="content-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold mb-2">The Art of Movement</h2>
+                    <p class="max-w-3xl mx-auto text-stone-600">How you travel defines your journey. This section helps you compare different transportation methods based on their inherent risks, costs, and benefits. Use the chart to see a high-level comparison and the buttons to dive into the specifics of each method.</p>
+                </div>
+                <div class="grid lg:grid-cols-2 gap-8 items-center">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="chart-container">
+                            <canvas id="transportChart"></canvas>
+                        </div>
+                        <div class="flex flex-wrap justify-center gap-2 mt-4">
+                            <button onclick="updateTransportDetails('train')" class="bg-stone-200 hover:bg-amber-600 hover:text-white text-stone-800 font-bold py-2 px-4 rounded">Train Hopping</button>
+                            <button onclick="updateTransportDetails('hitchhike')" class="bg-stone-200 hover:bg-amber-600 hover:text-white text-stone-800 font-bold py-2 px-4 rounded">Hitchhiking</button>
+                            <button onclick="updateTransportDetails('cycle')" class="bg-stone-200 hover:bg-amber-600 hover:text-white text-stone-800 font-bold py-2 px-4 rounded">Cycling</button>
+                            <button onclick="updateTransportDetails('walk')" class="bg-stone-200 hover:bg-amber-600 hover:text-white text-stone-800 font-bold py-2 px-4 rounded">Walking</button>
+                            <button onclick="updateTransportDetails('carpool')" class="bg-stone-200 hover:bg-amber-600 hover:text-white text-stone-800 font-bold py-2 px-4 rounded">Carpooling</button>
+                        </div>
+                    </div>
+                    <div id="transport-details" class="bg-white p-6 rounded-lg shadow min-h-[300px]">
+                        <!-- Details will be populated by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Shelter Section -->
+            <section id="shelter" class="content-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold mb-2">A Roof for the Night</h2>
+                    <p class="max-w-3xl mx-auto text-stone-600">Finding a safe and legal place to sleep is a critical skill. Free options now exist at the extremes: remote wilderness or deep community integration. Click each card to learn more about the strategy, its risks, and requirements.</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Shelter Cards will be populated by JS -->
+                </div>
+            </section>
+
+            <!-- Sustain Section -->
+            <section id="sustain" class="content-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold mb-2">Daily Bread & Hygiene</h2>
+                    <p class="max-w-3xl mx-auto text-stone-600">Meeting your fundamental needs for food, water, and hygiene is a daily challenge. A successful wanderer learns to navigate existing systems effectively. Use the tabs below to explore strategies for each essential need.</p>
+                </div>
+                <div class="w-full bg-white rounded-lg shadow p-6">
+                    <div class="border-b border-stone-200">
+                        <nav class="-mb-px flex gap-6" aria-label="Tabs">
+                            <button class="tab-button active shrink-0 border-b-2 border-transparent px-1 pb-4 text-lg font-medium text-stone-500 hover:border-stone-300 hover:text-stone-700" data-tab="food">Food</button>
+                            <button class="tab-button shrink-0 border-b-2 border-transparent px-1 pb-4 text-lg font-medium text-stone-500 hover:border-stone-300 hover:text-stone-700" data-tab="water">Water</button>
+                            <button class="tab-button shrink-0 border-b-2 border-transparent px-1 pb-4 text-lg font-medium text-stone-500 hover:border-stone-300 hover:text-stone-700" data-tab="hygiene">Hygiene</button>
+                        </nav>
+                    </div>
+                    <div id="sustain-content" class="mt-6">
+                        <!-- Content will be populated by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Earn Section -->
+            <section id="earn" class="content-section">
+                 <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold mb-2">Fueling the Journey</h2>
+                    <p class="max-w-3xl mx-auto text-stone-600">While frugality is key, a small income is often necessary. This section explores ways to earn money on the move, highlighting the trade-off between quick cash and long-term stability. Use the chart and table to compare options.</p>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-8 items-start">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-xl font-bold mb-4 text-center">Earning Potential vs. Start-Up Time</h3>
+                        <div class="chart-container h-96">
+                            <canvas id="earnChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                         <h3 class="text-xl font-bold mb-4 text-center">Income Method Breakdown</h3>
+                        <p class="text-stone-600 text-center mb-4">Click a row to see a detailed analysis and critical warnings.</p>
+                        <div id="earn-table" class="overflow-x-auto">
+                           <!-- Table generated by JS -->
+                        </div>
+                        <div id="earn-details" class="mt-4 p-4 bg-stone-50 rounded-lg min-h-[100px]">
+                            <!-- Details populated by JS on click -->
+                            <p class="text-stone-500">Select a method from the table above to view details.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Beware Section -->
+            <section id="beware" class="content-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold mb-2 text-red-700">Beware: Legal Realities & Hostile Design</h2>
+                    <p class="max-w-3xl mx-auto text-stone-600">This is the most critical section. The freedom of the road is colliding with a legal system that increasingly criminalizes existing in public space. Understanding these risks is essential for survival and freedom.</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow border-l-4 border-red-700">
+                        <h3 class="text-2xl font-bold mb-3">The Legal Crosshairs</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="font-semibold text-lg">The 2024 Watershed Moment</h4>
+                                <p class="text-stone-600">The Supreme Court case *City of Grants Pass v. Johnson* (June 2024) ruled that cities <strong class="text-red-700">can legally punish people</strong> for sleeping on public property, even if no shelter is available. This has greenlighted the criminalization of homelessness nationwide.</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg">The Aftermath: Anti-Camping Laws</h4>
+                                <p class="text-stone-600">Over 100 cities are passing new laws making it illegal to use public property for "living accommodations." This isn't just being "moved along" anymore—it can lead to arrest, fines, jail time, and confiscation of property. You must research local municipal codes for every town you enter.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow border-l-4 border-yellow-600">
+                        <h3 class="text-2xl font-bold mb-3">Hostile by Design</h3>
+                        <p class="text-stone-600 mb-4">The legal assault is matched by a physical one. Hostile architecture uses design to make public spaces unusable for rest. Learn to spot it:</p>
+                        <ul class="space-y-2 list-inside text-stone-700">
+                            <li><strong>Segmented Benches:</strong> Armrests or dividers to prevent lying down.</li>
+                            <li><strong>"Anti-Homeless" Spikes:</strong> Metal studs on flat surfaces.</li>
+                            <li><strong>Boulders & Obstructions:</strong> Rocks placed under bridges or in sheltered spots.</li>
+                            <li><strong>Sloped Surfaces:</strong> Ledges and sills built at an angle.</li>
+                            <li><strong>Removal of Amenities:</strong> Taking away public benches entirely.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const navItems = document.querySelectorAll('.nav-item');
+            const contentSections = document.querySelectorAll('.content-section');
+            const sustainTabs = document.querySelectorAll('.tab-button');
+
+            const setActiveSection = (sectionId) => {
+                navItems.forEach(item => {
+                    item.classList.toggle('active', item.dataset.section === sectionId);
+                });
+                contentSections.forEach(section => {
+                    section.classList.toggle('active', section.id === sectionId);
+                });
+            };
+
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const sectionId = item.dataset.section;
+                    setActiveSection(sectionId);
+                });
+            });
+
+            sustainTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    sustainTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    updateSustainContent(tab.dataset.tab);
+                });
+            });
+            
+            // Initial content population
+            setActiveSection('ethos');
+            initMoveSection();
+            initShelterSection();
+            initEarnSection();
+            updateSustainContent('food');
+        });
+
+        // --- TERRAIN INFO TOGGLE ---
+        function toggleTerrainInfo(terrain) {
+            const infoDiv = document.getElementById(`${terrain}-info`);
+            infoDiv.classList.toggle('hidden');
+        }
+
+        // --- MOVE SECTION ---
+        const transportData = {
+            labels: ['Low Cost', 'High Speed', 'Low Physicality', 'Low Legal Risk', 'Low Physical Risk'],
+            datasets: {
+                train: { label: 'Train Hopping', data: [5, 4, 4, 1, 1], borderColor: 'rgba(220, 38, 38, 1)', backgroundColor: 'rgba(220, 38, 38, 0.2)' },
+                hitchhike: { label: 'Hitchhiking', data: [5, 3, 5, 4, 3], borderColor: 'rgba(217, 119, 6, 1)', backgroundColor: 'rgba(217, 119, 6, 0.2)' },
+                cycle: { label: 'Cycling', data: [4, 2, 1, 5, 3], borderColor: 'rgba(34, 197, 94, 1)', backgroundColor: 'rgba(34, 197, 94, 0.2)' },
+                walk: { label: 'Walking', data: [5, 1, 1, 5, 4], borderColor: 'rgba(2, 132, 199, 1)', backgroundColor: 'rgba(2, 132, 199, 0.2)' },
+                carpool: { label: 'Carpooling App', data: [4, 4, 5, 5, 5], borderColor: 'rgba(107, 33, 168, 1)', backgroundColor: 'rgba(107, 33, 168, 0.2)' }
+            }
+        };
+
+        const transportDetails = {
+            train: `
+                <h3 class="text-2xl font-bold mb-3 text-red-600">CRITICAL WARNING: Train Hopping</h3>
+                <p class="text-stone-600 mb-2">This is exceptionally dangerous and <strong>not recommended</strong>. The romantic myth hides a brutal reality of life-altering injury or death.</p>
+                <ul class="list-disc list-inside space-y-1 text-stone-700">
+                    <li><strong>Dangers:</strong> Crushing from shifting cargo, suffocation in hoppers, violent "slack action," falls, electrocution, and threats from other riders.</li>
+                    <li><strong>Legal:</strong> Highly illegal, resulting in arrest and prosecution.</li>
+                    <li><strong>Harm Reduction:</strong> If you disregard warnings: Be sober, use the three-point rule for contact, ride in empty cars only, and stay low and aware.</li>
+                </ul>
+            `,
+            hitchhike: `
+                <h3 class="text-2xl font-bold mb-3 text-amber-600">Hitchhiking</h3>
+                <p class="text-stone-600 mb-2">An art of social engineering. Success depends on projecting safety and friendliness.</p>
+                <ul class="list-disc list-inside space-y-1 text-stone-700">
+                    <li><strong>Presentation:</strong> Be visible (no sunglasses), show your backpack, look clean, and smile.</li>
+                    <li><strong>Technique:</strong> Make it easy for drivers to stop safely. On-ramps, gas stations, and post-intersections are good spots. A simple sign helps.</li>
+                    <li><strong>Safety:</strong> Trust your instincts. If a ride feels wrong, decline it or ask to be let out.</li>
+                </ul>
+            `,
+            cycle: `
+                <h3 class="text-2xl font-bold mb-3 text-green-600">Long-Distance Cycling</h3>
+                <p class="text-stone-600 mb-2">Offers great autonomy but is physically demanding and requires significant gear.</p>
+                <ul class="list-disc list-inside space-y-1 text-stone-700">
+                    <li><strong>Preparation:</strong> Build "base miles" over 6-16 weeks. A professional bike fit is crucial to prevent injury.</li>
+                    <li><strong>On the Road:</strong> Pace yourself to avoid "bonking." Eat before you're hungry, drink before you're thirsty.</li>
+                    <li><strong>Gear:</strong> Padded shorts, a comfy saddle, and a full repair kit are non-negotiable.</li>
+                </ul>
+            `,
+            walk: `
+                <h3 class="text-2xl font-bold mb-3 text-sky-600">Long-Distance Walking</h3>
+                <p class="text-stone-600 mb-2">The most intimate way to see the world, but it's an endurance sport.</p>
+                <ul class="list-disc list-inside space-y-1 text-stone-700">
+                    <li><strong>Preparation:</strong> Condition your body by gradually increasing weekly mileage. Be able to walk 15 miles a week comfortably before starting a long trek.</li>
+                    <li><strong>On the Road:</strong> Foot care is paramount. Experiment with footwear and socks to prevent blisters.</li>
+                </ul>
+            `,
+            carpool: `
+                <h3 class="text-2xl font-bold mb-3 text-purple-700">Carpooling Apps</h3>
+                <p class="text-stone-600 mb-2">A modern, low-risk, and predictable alternative to hitchhiking. Connects drivers with riders on a cost-sharing basis.</p>
+                <ul class="list-disc list-inside space-y-1 text-stone-700">
+                    <li><strong>Platforms:</strong> BlaBlaCar, Hitch, Hovr, Ridesharing.com.</li>
+                    <li><strong>Benefits:</strong> Safer, more predictable, and social. Built on a system of reviews and trust.</li>
+                    <li><strong>Cost:</strong> Low cost, not free. You contribute to fuel/tolls.</li>
+                </ul>
+            `
+        };
+        
+        let transportChart;
+        function initMoveSection() {
+            const ctx = document.getElementById('transportChart').getContext('2d');
+            transportChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: transportData.labels,
+                    datasets: [transportData.datasets.train]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.r !== null) {
+                                        label += `${context.parsed.r} / 5`;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 5,
+                            pointLabels: {
+                                font: {
+                                    size: 10
+                                }
+                            },
+                             ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+            updateTransportDetails('train');
+        }
+
+        function updateTransportDetails(method) {
+            document.getElementById('transport-details').innerHTML = transportDetails[method];
+            transportChart.data.datasets = [transportData.datasets[method]];
+            transportChart.update();
+        }
+
+        // --- SHELTER SECTION ---
+        const shelterData = [
+            {
+                title: 'BLM Dispersed Camping',
+                icon: '🌲',
+                environment: 'Rural',
+                legality: 'Legal (if rules followed)',
+                content: `
+                    <p class="mb-2">Public lands, mainly in the western US, offer legal, free camping.</p>
+                    <strong class="font-semibold">Rules:</strong> 14-day stay limit in one spot per 28 days. Use pre-existing sites. Stay 100ft from water.
+                    <strong class="font-semibold mt-2 block">Ethics:</strong> Pack out ALL waste (Leave No Trace). Practice strict fire safety.
+                    <strong class="font-semibold mt-2 block">Requires:</strong> Vehicle for access, self-sufficiency (no services).`
+            },
+            {
+                title: 'Urban Stealth Camping',
+                icon: '🚐',
+                environment: 'Urban',
+                legality: 'High Risk (Increasingly Criminalized)',
+                content: `
+                    <p class="mb-2">The art of sleeping in a vehicle without being noticed. Now a very high-risk strategy.</p>
+                    <strong class="font-semibold">Core Principle:</strong> Blend in. Arrive late, leave early. No lights, no noise.
+                    <strong class="font-semibold mt-2 block">Locations:</strong> Industrial parks, 24-hour retail lots (check policy), quiet residential streets. Know local parking laws!
+                    <strong class="font-semibold mt-2 block">Safety:</strong> Inform a friend of your location. Pack out all waste.`
+            },
+            {
+                title: 'Hospitality Exchange',
+                icon: '🛋️',
+                environment: 'Urban / Rural',
+                legality: 'Low Risk',
+                content: `
+                    <p class="mb-2">Connect with hosts offering a free place to stay. Built on trust and reputation.</p>
+                    <strong class="font-semibold">Platforms:</strong> BeWelcome, Trustroots (non-profit). Warmshowers (for cyclists). Couchsurfing (paid).
+                    <strong class="font-semibold mt-2 block">How it Works:</strong> Create a strong, honest profile. Send personalized requests. Leave reviews.
+                    <strong class="font-semibold mt-2 block">Requires:</strong> Good social skills, clear communication, being a gracious guest.`
+            },
+            {
+                title: 'Work Exchange',
+                icon: '🧑‍🌾',
+                environment: 'Urban / Rural',
+                legality: 'Low Risk',
+                content: `
+                    <p class="mb-2">Trade a few hours of labor per day for room and board.</p>
+                    <strong class="font-semibold">Platforms:</strong> WWOOF (organic farms), Workaway, HelpX.
+                    <strong class="font-semibold mt-2 block">How it Works:</strong> Find a host needing help (farm, hostel, family). Commit for a set period.
+                    <strong class="font-semibold mt-2 block">Requires:</strong> Willingness to work, commitment, and good communication.`
+            }
+        ];
+
+        function initShelterSection() {
+            const container = document.querySelector('#shelter .grid');
+            container.innerHTML = shelterData.map((item, index) => `
+                <div class="bg-white p-6 rounded-lg shadow cursor-pointer card-expandable" onclick="toggleCard(this)">
+                    <h3 class="text-xl font-bold mb-2 flex items-center justify-between">
+                        <span>${item.icon} ${item.title}</span>
+                        <span class="text-sm font-normal text-stone-500 transform rotate-0">&#9662;</span>
+                    </h3>
+                    <div class="text-sm text-stone-500 mb-2"><strong>Environment:</strong> ${item.environment} | <strong>Risk:</strong> ${item.legality}</div>
+                    <div class="card-content hidden mt-4 text-stone-700">
+                        ${item.content}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function toggleCard(cardElement) {
+            const content = cardElement.querySelector('.card-content');
+            const arrow = cardElement.querySelector('h3 span:last-child');
+            content.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180');
+        }
+
+        // --- SUSTAIN SECTION ---
+        const sustainContent = {
+            food: `
+                <h3 class="text-xl font-bold mb-3">Finding Food</h3>
+                <p class="text-stone-600 mb-4">When funds are low, tap into charitable networks. Foraging is not a reliable daily strategy.</p>
+                <ul class="space-y-3">
+                    <li><strong class="font-semibold">Online Locators:</strong> Use <a href="https://www.feedingamerica.org/find-your-local-food-bank" target="_blank" class="text-amber-600 hover:underline">Feeding America</a> or <a href="https://foodfinder.us/" target="_blank" class="text-amber-600 hover:underline">FoodFinder</a> to locate food banks and pantries near you. They provide maps, hours, and contact info.</li>
+                    <li><strong class="font-semibold">Eligibility:</strong> Generally, anyone needing help is eligible. Some pantries may have local residency rules, but many do not. Be prepared to fill out a simple form.</li>
+                </ul>
+            `,
+            water: `
+                <h3 class="text-xl font-bold mb-3">Accessing Potable Water</h3>
+                <p class="text-stone-600 mb-4">Dehydration is a rapid threat. Securing safe water is a non-negotiable daily task.</p>
+                <ul class="space-y-3">
+                    <li><strong class="font-semibold">Safe Public Sources:</strong> Look for water fountains in public parks, libraries, community centers, and visitor information centers. Rest stops are also reliable.</li>
+                    <li><strong class="font-semibold">Purification:</strong> When in rural or wilderness areas, ALWAYS purify water from natural sources. Carry a filter (e.g., Sawyer Squeeze), purification tablets, or a UV purifier. Clear-looking water can still make you very sick.</li>
+                </ul>
+            `,
+            hygiene: `
+                <h3 class="text-xl font-bold mb-3">Maintaining Personal Hygiene</h3>
+                <p class="text-stone-600 mb-4">Hygiene is critical for health, self-esteem, and social acceptance.</p>
+                <ul class="space-y-3">
+                    <li><strong class="font-semibold">Free/Low-Cost Showers:</strong> Homeless shelters, mobile shower units (like ShowerUp), some YMCAs, and community centers.</li>
+                    <li><strong class="font-semibold">Paid Showers:</strong> Truck stops (Pilot, Love's, TA-Petro) are the most reliable option, costing ~$10-15. Some campgrounds and gas stations also offer them for a fee.</li>
+                    <li><strong class="font-semibold">Natural Options:</strong> Bathing in rivers/lakes is possible in remote areas. Use biodegradable soap and ensure the water is safe.</li>
+                </ul>
+            `
+        };
+        
+        function updateSustainContent(tab) {
+            document.getElementById('sustain-content').innerHTML = sustainContent[tab];
+        }
+
+        // --- EARN SECTION ---
+        const earnData = {
+            methods: [
+                { id: 'busking', name: 'Busking', potential: 3, time: 1, skill: 3, reliability: 3 },
+                { id: 'crafts', name: 'Selling Crafts', potential: 3, time: 2, skill: 3, reliability: 2 },
+                { id: 'apps', name: 'Day Labor Apps', potential: 2, time: 1, skill: 1, reliability: 1 },
+                { id: 'microgigs', name: 'Online Micro-Gigs', potential: 1, time: 1, skill: 1, reliability: 3 },
+                { id: 'blogging', name: 'Blogging', potential: 4, time: 5, skill: 4, reliability: 4 }
+            ],
+            details: {
+                busking: `<strong>Busking:</strong> Requires performance skill and thick skin. Success depends on location, timing, and an engaging act. <strong>CRITICAL:</strong> Research and comply with local permits and laws to avoid fines.`,
+                crafts: `<strong>Selling Crafts:</strong> Requires a craft and business savvy. <strong>CRITICAL:</strong> This is highly regulated. You will likely need state/local business licenses and vendor permits. Research city hall rules first.`,
+                apps: `<strong>Day Labor Apps (Instawork, etc.):</strong> Quick cash but extremely unreliable. <strong>CRITICAL WARNING:</strong> Never rely on this as a sole income source. Common issues include last-minute shift cancellations, non-payment "glitches", and non-existent customer support. Highly precarious.`,
+                microgigs: `<strong>Online Micro-Gigs (MTurk, etc.):</strong> Repetitive tasks like surveys. Requires no skill but pay is exceptionally low ($1-$5/hr). Good for coffee money, not for funding a journey.`,
+                blogging: `<strong>Blogging:</strong> A long-term strategy, not quick cash. Requires writing/SEO skills, consistency, and patience. It can take months or years to build an audience and see any significant income through ads or affiliate marketing.`
+            }
+        };
+
+        let earnChart;
+        function initEarnSection() {
+            const ctx = document.getElementById('earnChart').getContext('2d');
+            const data = earnData.methods;
+            earnChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.name),
+                    datasets: [
+                        {
+                            label: 'Earning Potential',
+                            data: data.map(d => d.potential),
+                            backgroundColor: 'rgba(217, 119, 6, 0.6)',
+                            borderColor: 'rgba(217, 119, 6, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Start-up Time',
+                            data: data.map(d => d.time),
+                            backgroundColor: 'rgba(120, 113, 108, 0.6)',
+                            borderColor: 'rgba(120, 113, 108, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 5,
+                            ticks: {
+                                callback: function(value) {
+                                    const labels = ['','Low', 'Medium', 'High', 'Very High', 'Very Long'];
+                                    return labels[value];
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: { enabled: false }
+                    }
+                }
+            });
+            
+            // Build Table
+            const tableContainer = document.getElementById('earn-table');
+            const table = document.createElement('table');
+            table.className = 'w-full text-left border-collapse';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th class="py-2 px-3 bg-stone-200 font-semibold text-sm text-stone-600 border-b border-stone-300">Method</th>
+                        <th class="py-2 px-3 bg-stone-200 font-semibold text-sm text-stone-600 border-b border-stone-300 text-center">Skill</th>
+                        <th class="py-2 px-3 bg-stone-200 font-semibold text-sm text-stone-600 border-b border-stone-300 text-center">Reliability</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${earnData.methods.map(d => `
+                        <tr data-id="${d.id}" class="hover:bg-amber-100 cursor-pointer">
+                            <td class="py-2 px-3 border-b border-stone-200">${d.name}</td>
+                            <td class="py-2 px-3 border-b border-stone-200 text-center">${'★'.repeat(d.skill)}${'☆'.repeat(5-d.skill)}</td>
+                            <td class="py-2 px-3 border-b border-stone-200 text-center">${'★'.repeat(d.reliability)}${'☆'.repeat(5-d.reliability)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+            tableContainer.appendChild(table);
+
+            table.querySelectorAll('tbody tr').forEach(row => {
+                row.addEventListener('click', () => {
+                    const id = row.dataset.id;
+                    document.getElementById('earn-details').innerHTML = earnData.details[id];
+                })
+            });
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phasmophobia: Zero Evidence Identifier</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Slate Neutrals & Muted Teal -->
+    <!-- Application Structure Plan: A task-oriented, tabbed Single-Page Application (SPA). The structure is designed for in-game use, prioritizing speed of information retrieval.
+        1. 'Identifier' Tab: The main tool. Users click observed behaviors ('tells') to instantly filter a list of possible ghosts. This directly implements the 'Funnel Method' from the report in an interactive way, which is the user's primary goal.
+        2. 'Comparative Analysis' Tab: Visualizes key quantitative data (Hunt Thresholds, Speeds) using charts. This allows for rapid comparison between ghosts, a secondary but crucial task that is difficult with text tables.
+        3. 'Full Compendium' Tab: A searchable encyclopedia of all ghosts. This serves as a tertiary reference or study tool, providing full details on demand without cluttering the main identifier.
+        This tabbed structure was chosen over a single long page to minimize scrolling and keep each user task within a clean, dedicated view, which is essential for quick decisions under pressure during gameplay. -->
+    <!-- Visualization & Content Choices:
+        - Report Info: The entire set of ghost behaviors, prohibitions, and statistics.
+        - Goal: To enable rapid, deductive identification of a ghost without evidence.
+        - Viz/Presentation Method:
+            - Interactive Toggles/Buttons (HTML/JS): For selecting observed 'tells' in the Identifier.
+            - Dynamic Grid of Cards (HTML/JS/Tailwind): To display the filtered list of possible ghosts.
+            - Modal Windows (HTML/JS/Tailwind): To show detailed ghost information without leaving the main view.
+            - Bar Charts (Chart.js/Canvas): To compare hunt sanity thresholds and hunt speeds. Floating bars will be used for variable speeds to show min/max ranges clearly.
+        - Interaction: Clicking tells filters the grid. Clicking a ghost card opens a modal. Hovering on charts shows tooltips with precise data. A search bar filters the compendium.
+        - Justification: This combination of interactive elements directly supports the user's analytical process. The charts provide a visual shortcut to data comparison, while the identifier tool gamifies the process of elimination described in the report.
+        - Library/Method: Vanilla JS for logic, Tailwind CSS for styling, and Chart.js for all visualizations. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        .tab-active { 
+            background-color: #0d9488; /* teal-600 */
+            color: white;
+            border-bottom-color: transparent;
+        }
+        .tab-inactive {
+            background-color: #f1f5f9; /* slate-100 */
+            color: #475569; /* slate-600 */
+        }
+        .tell-btn-active {
+            background-color: #0d9488; /* teal-600 */
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+         .tell-btn-inactive {
+            background-color: white;
+            color: #334155; /* slate-700 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 500px;
+            }
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <div id="app" class="container mx-auto p-4 md:p-6">
+
+        <header class="text-center mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Phasmophobia: Zero Evidence Identifier</h1>
+            <p class="text-slate-600 mt-2">An interactive tool based on the Investigator's Compendium to identify entities by behavior.</p>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="flex justify-center border-b-2 border-slate-300 mb-6">
+            <button data-tab="identifier" class="tab text-sm md:text-base font-semibold py-2 px-4 md:px-6 rounded-t-lg transition-colors duration-200">Ghost Identifier</button>
+            <button data-tab="analysis" class="tab text-sm md:text-base font-semibold py-2 px-4 md:px-6 rounded-t-lg transition-colors duration-200">Comparative Analysis</button>
+            <button data-tab="compendium" class="tab text-sm md:text-base font-semibold py-2 px-4 md:px-6 rounded-t-lg transition-colors duration-200">Full Compendium</button>
+        </nav>
+
+        <main>
+            <!-- Tab Content: Identifier -->
+            <div id="tab-identifier" class="tab-content space-y-6">
+                <div class="bg-white p-4 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold mb-3 text-slate-800">1. Select Observed Behaviors</h2>
+                    <p class="text-slate-600 mb-4">Click any behaviors you've witnessed. The list of possible ghosts will filter automatically. The first step of any run should be checking for The Mimic's guaranteed Ghost Orbs.</p>
+                    <div id="tells-container" class="space-y-4"></div>
+                     <button id="reset-filters" class="mt-4 w-full md:w-auto bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Reset All Filters</button>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold mb-3 text-slate-800">2. Possible Ghosts (<span id="ghost-count">24</span>)</h2>
+                    <p class="text-slate-600 mb-4">Based on your selections, these are the possible entities. Click on a card for full details.</p>
+                    <div id="ghosts-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+                        <!-- Ghost cards will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Analysis -->
+            <div id="tab-analysis" class="tab-content hidden space-y-8">
+                <div class="bg-white p-4 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold mb-3 text-slate-800">Hunt Sanity Threshold Comparison</h2>
+                    <p class="text-slate-600 mb-4">This chart shows the average team sanity at which each ghost can begin a hunt. Some ghosts have special conditions that alter this threshold. Note that Cursed Hunts can be initiated at any sanity level.</p>
+                    <div class="chart-container">
+                        <canvas id="sanityChart"></canvas>
+                    </div>
+                </div>
+                 <div class="bg-white p-4 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold mb-3 text-slate-800">Hunt Speed Comparison</h2>
+                    <p class="text-slate-600 mb-4">This chart visualizes ghost movement speeds during a hunt. "Base Speed" is the standard speed. "Variable Speed" shows the range a ghost can reach under specific conditions (e.g., Line of Sight, temperature, player sanity). A higher bar indicates a faster ghost.</p>
+                    <div class="chart-container">
+                        <canvas id="speedChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Compendium -->
+            <div id="tab-compendium" class="tab-content hidden">
+                 <div class="bg-white p-4 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold mb-3 text-slate-800">Entity Compendium</h2>
+                    <p class="text-slate-600 mb-4">Browse or search through all 24 entities. Click any ghost to view its detailed behavioral profile.</p>
+                    <input type="text" id="search-bar" placeholder="Search for a ghost..." class="w-full p-2 border border-slate-300 rounded-lg mb-4 focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                    <div id="compendium-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+                        <!-- Full ghost list will be injected here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Ghost Detail Modal -->
+    <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50">
+        <div id="modal-content" class="bg-slate-50 w-full max-w-2xl max-h-[90vh] rounded-lg shadow-2xl flex flex-col">
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center">
+                <h2 id="modal-title" class="text-2xl font-bold text-slate-900"></h2>
+                <button id="modal-close" class="text-slate-500 hover:text-slate-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div id="modal-body" class="p-4 md:p-6 overflow-y-auto space-y-4">
+                <!-- Detailed content will be injected here -->
+            </div>
+             <div class="p-4 border-t border-slate-200 bg-slate-100 text-right">
+                <button id="modal-close-footer" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">Close</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+const ghostData = [
+    {
+        id: "spirit", name: "Spirit",
+        tells: ["smudge_180s"],
+        huntSanity: 50, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "The archetypal ghost, serving as the baseline against which other entities are measured. It has no unique strengths or special abilities.",
+            "Definitive Tell": "When the area around a Spirit is cleansed with a smudge stick, it is prevented from initiating a hunt for 180 seconds (3 minutes), double the standard 90-second duration for most ghosts.",
+            "Diagnostic Protocol": "The 'Spirit Timer Test.' Smudge the ghost room and start a timer. If no hunt occurs for the full 3 minutes, it is a Spirit."
+        }
+    },
+    {
+        id: "wraith", name: "Wraith",
+        tells: ["no_salt_footprints", "teleport_ability"],
+        huntSanity: 50, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "A non-corporeal entity that can teleport and ignores certain physical laws.",
+            "Definitive Tells": "1. **Salt Immunity:** It is the only ghost that does not interact with salt piles. It floats directly over them. 2. **Teleportation:** It can randomly teleport to a player's location, leaving an EMF 2 or 5 reading at its point of *origin*.",
+            "Diagnostic Protocol": "The 'Salt Line Test.' Place salt in high-traffic doorways. If the ghost is active but the salt is undisturbed, it's a Wraith. A motion sensor over the salt can confirm this."
+        }
+    },
+    {
+        id: "phantom", name: "Phantom",
+        tells: ["slow_blink_hunt", "photo_disappears"],
+        huntSanity: 50, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "A spectral entity that drains sanity and is difficult to track visually.",
+            "Definitive Tells": "1. **Slow Blink:** During a hunt, it remains invisible for significantly longer periods, making it hard to see. 2. **Photo Disappearance:** Taking a photo of it during a ghost event will make it vanish instantly (the photo will be clear but count as a ghost photo). 3. **Roaming:** Can wander to a random player's location, leaving an EMF 2 reading at its destination.",
+            "Diagnostic Protocol": "The 'Blink Test.' Loop the ghost and observe its visibility. If it's exceptionally hard to track, it is a Phantom."
+        }
+    },
+    {
+        id: "poltergeist", name: "Poltergeist",
+        tells: ["multi_throw"],
+        huntSanity: 50, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "A master of telekinesis whose power is amplified by a cluttered environment.",
+            "Definitive Tells": "1. **Multi-Throw:** It is the only ghost capable of throwing multiple objects simultaneously from a single point. 2. **Hunt Throws:** During a hunt, it has a 100% chance to throw a nearby object every 0.5 seconds.",
+            "Diagnostic Protocol": "The 'Item Pile Test.' Pile several items in the ghost room. If the entire pile is thrown at once, it is a Poltergeist."
+        }
+    },
+    {
+        id: "banshee", name: "Banshee",
+        tells: ["targets_one_player", "banshee_scream"],
+        huntSanity: 50, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "A focused predator that fixates on a single target, hunting based on that target's sanity.",
+            "Definitive Tells": "1. **Targeted Hunting:** Will single-mindedly pursue its chosen target during a hunt, ignoring other players. 2. **Targeted Roaming:** Frequently roams towards its target's location outside of hunts. 3. **Banshee Scream:** Has a unique wailing vocalization heard only on the Parabolic Microphone.",
+            "Diagnostic Protocol": "In multiplayer, if the ghost consistently pursues the same player, it is a Banshee. Solo, watch for frequent roaming to your position."
+        }
+    },
+    {
+        id: "jinn", name: "Jinn",
+        tells: ["breaker_on_speed", "no_breaker_off"],
+        huntSanity: 50, baseSpeed: 1.7, variableSpeed: [1.7, 2.5],
+        profile: {
+            "Threat Profile": "A territorial entity intrinsically linked to the location's electrical grid.",
+            "Definitive Tells": "1. **Breaker-Powered Chase:** With the fuse box ON, it will accelerate to 2.5 m/s when chasing a distant player, slowing down when it gets close. 2. **Breaker Prohibition:** A Jinn CANNOT turn off the fuse box. 3. **Sanity Drain Ability:** Can instantly drain 25% sanity from nearby players (breaker must be on), leaving EMF at the breaker box.",
+            "Diagnostic Protocol": "The 'Breaker Test.' If the ghost is fast from a distance with the breaker on, but normal speed with it off, it's a Jinn. If it ever turns the breaker off itself, it is not a Jinn."
+        }
+    },
+    {
+        id: "mare", name: "Mare",
+        tells: ["hunt_dark_early", "no_light_on"],
+        huntSanity: 60, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "A nyctophilic entity that thrives in darkness.",
+            "Definitive Tells": "1. **Light-Based Hunting:** Can hunt at 60% sanity if its room is dark, but only 40% if the light is on. 2. **Light Switch Prohibition:** A Mare will NEVER turn a light switch ON. It has an increased chance to turn them OFF.",
+            "Diagnostic Protocol": "The 'Light Switch Test.' If you witness the ghost turn a light ON, it is not a Mare. If it repeatedly turns a light off that you just turned on, it is likely a Mare."
+        }
+    },
+    {
+        id: "revenant", name: "Revenant",
+        tells: ["fast_los"],
+        huntSanity: 50, baseSpeed: 1.0, variableSpeed: [1.0, 3.0],
+        profile: {
+            "Threat Profile": "An apex predator whose lethality is directly tied to its ability to acquire a target.",
+            "Definitive Tell": "Exhibits the most extreme speed differential. Moves at a very slow 1.0 m/s when it does not have Line of Sight (LoS) on a player, but instantly accelerates to a rapid 3.0 m/s upon acquiring LoS.",
+            "Diagnostic Protocol": "The 'Revenant Test.' During a hunt, listen for the footsteps. Slow, deliberate steps that instantly become frantic, rapid steps upon seeing a player is a definitive sign."
+        }
+    },
+    {
+        id: "shade", name: "Shade",
+        tells: ["shy_hunt"],
+        huntSanity: 35, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "A notoriously shy entity that avoids interaction when observed.",
+            "Definitive Tells": "1. **Shyness:** Will not initiate a hunt or perform most physical interactions (like throws) if a player is in the same room. 2. **Low Activity:** Tends to be less active and prefers shadow or 'airball' manifestations.",
+            "Diagnostic Protocol": "The 'Patience Test.' If your sanity is below 35% but no hunt occurs while you're in the ghost room, it suggests a Shade. Leave the room; if a hunt begins shortly after, it confirms its shyness."
+        }
+    },
+    {
+        id: "demon", name: "Demon",
+        tells: ["hunt_early", "smudge_60s"],
+        huntSanity: 70, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "The most relentlessly aggressive hunter, defined by its ability to initiate hunts far earlier than any other entity.",
+            "Definitive Tells": "1. **Early Hunter:** Can naturally hunt at 70% average sanity and has a rare ability to hunt at any sanity. 2. **Short Cooldown:** Minimum 20s between hunts (vs 25s standard). 3. **Weak to Smudge:** A smudge stick only prevents a hunt for 60 seconds (vs 90s standard).",
+            "Diagnostic Protocol": "The 'Smudge Timer Test.' Smudge the area and start a timer. If a hunt occurs between 61 and 89 seconds, it is a Demon."
+        }
+    },
+    {
+        id: "yurei", name: "Yurei",
+        tells: ["door_slam_sanity"],
+        huntSanity: 50, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "An entity known for its unique ability to manipulate doors and drain sanity.",
+            "Definitive Tells": "1. **Door Slam Ability:** Possesses a unique ability to fully slam a door shut from an open position, instantly draining 15% sanity from nearby players. This can affect the exit door outside of a hunt. 2. **Smudge Trap:** Smudging a Yurei will 'trap' it in its room for 90 seconds, preventing wandering.",
+            "Diagnostic Protocol": "The 'Open Door Policy.' Leave doors open. If one slams fully shut, check player sanity immediately. A coinciding 15% drop confirms a Yurei."
+        }
+    },
+    {
+        id: "oni", name: "Oni",
+        tells: ["high_visibility_hunt", "no_airball"],
+        huntSanity: 50, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "A highly physical and visible entity that is more active with more people present.",
+            "Definitive Tells": "1. **High Visibility:** During a hunt, an Oni blinks far less, making it almost constantly visible. 2. **'Airball' Prohibition:** It is incapable of performing the 'ghost mist' or 'airball' event. 3. **Group Activity:** More active with multiple players nearby and its events drain double sanity (20%).",
+            "Diagnostic Protocol": "The 'Hunt Visibility Test.' Loop the ghost. If it's almost always visible, it's an Oni. Seeing an airball event rules it out."
+        }
+    },
+    {
+        id: "yokai", name: "Yokai",
+        tells: ["hunt_voice_early", "short_range_hearing"],
+        huntSanity: 80, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "A sound-sensitive entity that is easily angered by human voices.",
+            "Definitive Tells": "1. **Voice-Triggered Hunts:** Talking near a Yokai can provoke it to hunt at up to 80% sanity. 2. **Limited Hearing:** During a hunt, it can only detect voices or active electronics from a very short distance (2.5 meters).",
+            "Diagnostic Protocol": "The 'Yell Test.' During a hunt, hide at a safe distance (>3m) and talk or turn on electronics. A Yokai will be completely oblivious."
+        }
+    },
+    {
+        id: "hantu", name: "Hantu",
+        tells: ["speed_by_temp", "freezing_breath_hunt"],
+        huntSanity: 50, baseSpeed: 1.4, variableSpeed: [1.4, 2.7],
+        profile: {
+            "Threat Profile": "A temperature-dependent entity whose threat level is inversely proportional to the ambient temperature.",
+            "Definitive Tells": "1. **Variable Hunt Speed:** Speed is directly correlated with room temperature. As slow as 1.4 m/s in warm rooms (>15°C) and as fast as 2.7 m/s in freezing rooms (<0°C). 2. **Freezing Breath:** Visibly emits puffs of cold breath during a hunt if the breaker is OFF.",
+            "Diagnostic Protocol": "The 'Hantu Hop.' Listen for footstep speed changes as it moves between rooms. With the breaker off, it will be consistently fast everywhere and show its freezing breath."
+        }
+    },
+    {
+        id: "goryo", name: "Goryo",
+        tells: ["no_room_change"],
+        huntSanity: 50, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "A territorial and sedentary entity that rarely strays from its place of death.",
+            "Definitive Tells": "1. **Cannot Change Favorite Room:** A Goryo is incapable of permanently changing its favorite room. 2. **Limited Roaming:** Wanders a much shorter distance than other ghosts. 3. **D.O.T.S. Visibility:** Its D.O.T.S. projection is only visible through a video camera when no players are in the room. Seeing D.O.T.S. with the naked eye rules out a Goryo.",
+            "Diagnostic Protocol": "The 'Wander Test.' If the ghost remains confined to its initial room for the entire investigation, it is likely a Goryo."
+        }
+    },
+    {
+        id: "myling", name: "Myling",
+        tells: ["quiet_hunt_footsteps"],
+        huntSanity: 50, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "A stealthy predator that excels at ambushing its prey.",
+            "Definitive Tells": "1. **Quiet Hunt:** Its footsteps are only audible within a 12-meter radius (vs 20m standard). 2. **Parabolic Activity:** Produces paranormal sounds more frequently.",
+            "Diagnostic Protocol": "The 'Flashlight Drop Test.' During a hunt, an active flashlight on the floor will begin flickering (10m range) at the same time or just before you hear footsteps (12m range). For other ghosts, you hear footsteps first."
+        }
+    },
+    {
+        id: "onryo", name: "Onryo",
+        tells: ["fire_prevents_hunt", "third_extinguish_hunts"],
+        huntSanity: 60, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "An entity with a profound aversion to fire, whose hunting behavior is governed by flames.",
+            "Definitive Tells": "1. **The Candle Rule:** Cannot hunt if within 4 meters of a lit flame (candle, lighter). Flames act as crucifixes. 2. **The Third Extinguish:** After blowing out a third flame, it will immediately attempt to hunt, regardless of sanity.",
+            "Diagnostic Protocol": "The 'Onryo Crucifix Test.' Place a lit candle on a crucifix. If the crucifix is used while the candle is lit, it is NOT an Onryo. An Onryo must blow out the flame first."
+        }
+    },
+    {
+        id: "the_twins", name: "The Twins",
+        tells: ["twin_teraction", "variable_hunt_speed"],
+        huntSanity: 50, baseSpeed: 1.53, variableSpeed: [1.53, 1.87],
+        profile: {
+            "Threat Profile": "A dual entity that creates confusion through desynchronized interactions and hunts.",
+            "Definitive Tells": "1. **'Twin-teraction':** Can interact with two objects in different locations simultaneously, creating a jagged spike on the activity chart. 2. **Variable Hunt Speed:** Hunts will feature either a slightly slower twin (~1.5 m/s) or a slightly faster twin (~1.9 m/s).",
+            "Diagnostic Protocol": "The 'Multi-Hunt Speed Test.' Time the ghost's patrol speed across several hunts. If you record noticeably different base speeds, it's The Twins."
+        }
+    },
+    {
+        id: "raiju", name: "Raiju",
+        tells: ["electronics_speed_boost", "extended_flicker_range"],
+        huntSanity: 65, baseSpeed: 1.7, variableSpeed: [1.7, 2.5],
+        profile: {
+            "Threat Profile": "An entity that draws power from active electronics, increasing its threat level.",
+            "Definitive Tells": "1. **Electronic Speed Boost:** Base speed increases to ~2.5 m/s when near active player electronics. 2. **Extended Disruption Range:** Causes electronics to flicker from 15 meters away (vs 10m standard). 3. **Early Hunt:** Hunts at 65% sanity when near active electronics.",
+            "Diagnostic Protocol": "The 'Raiju Bait' Test. Drop an active electronic item in a corridor. Listen for a sudden speed increase as it passes. If your gear flickers but you can't hear footsteps yet, it's a Raiju."
+        }
+    },
+    {
+        id: "obake", name: "Obake",
+        tells: ["shapeshift_hunt"],
+        huntSanity: 50, baseSpeed: 1.7, variableSpeed: [1.7, 1.7],
+        profile: {
+            "Threat Profile": "A shapeshifting entity whose tells are subtle and often linked to evidence.",
+            "Definitive Tells": "1. **Shapeshifting:** During a hunt, has a 6.66% chance with each flicker to momentarily change its model to another ghost's. Guaranteed to do this at least once per hunt. 2. **Fingerprint Anomalies:** Can leave unique 6-fingered handprints, can avoid leaving prints, or its prints can disappear faster.",
+            "Diagnostic Protocol": "The 'Shapeshift Watch.' Loop the ghost in a well-lit area and watch its model very carefully for a momentary change into a different form."
+        }
+    },
+    {
+        id: "the_mimic", name: "The Mimic",
+        tells: ["mimic_orbs"],
+        huntSanity: 0, baseSpeed: 0, variableSpeed: [0, 0], // Placeholder, as it copies others
+        profile: {
+            "Threat Profile": "The ultimate deceiver, capable of copying the traits and behaviors of any other ghost.",
+            "Definitive Tell": "**Ghost Orbs.** The Mimic will ALWAYS show Ghost Orbs, even on zero-evidence settings. These are a 'fake' piece of evidence, but their presence is a guaranteed tell.",
+            "Diagnostic Protocol": "The first step of any zero-evidence contract is to check for Ghost Orbs. Their presence confirms The Mimic. Observing contradictory behaviors across multiple hunts is secondary confirmation."
+        }
+    },
+    {
+        id: "moroi", name: "Moroi",
+        tells: ["sanity_curse", "sanity_speed", "smudge_12s"],
+        huntSanity: 50, baseSpeed: 1.5, variableSpeed: [1.5, 3.7],
+        profile: {
+            "Threat Profile": "A parasitic entity that weakens its prey through a sanity-draining curse.",
+            "Definitive Tells": "1. **The Curse:** Receiving a response via Spirit Box or Parabolic Mic curses a player, doubling their passive sanity drain. 2. **Sanity-Based Speed:** Its hunt speed is inversely proportional to average team sanity. It can become the fastest ghost at very low sanity. 3. **Extended Smudge Blindness:** Is blinded for 12 seconds when smudged during a hunt (vs 6s standard).",
+            "Diagnostic Protocol": "The 'Curse Test.' Get a parabolic/spirit box response. Check sanity. Wait one minute in a lit room. If sanity has dropped significantly, the curse is active."
+        }
+    },
+    {
+        id: "deogen", name: "Deogen",
+        tells: ["fast_far_slow_close", "deo_breathing"],
+        huntSanity: 40, baseSpeed: 0.4, variableSpeed: [0.4, 3.0],
+        profile: {
+            "Threat Profile": "An omniscient hunter that cannot be hidden from, but is slow up close.",
+            "Definitive Tells": "1. **Hunt Behavior:** Always knows every player's location. Moves very fast when far away, but slows dramatically to ~0.4 m/s when it gets close, making it easy to loop. 2. **Unique Spirit Box Response:** Has a chance to produce heavy breathing/growling sound on the Spirit Box when used within 1 meter.",
+            "Diagnostic Protocol": "The 'Deogen Chase.' During a hunt, if the ghost makes a beeline for you then slows to a crawl as it nears, it is a Deogen. Hiding is futile; you must loop it."
+        }
+    },
+    {
+        id: "thaye", name: "Thaye",
+        tells: ["aging_mechanic"],
+        huntSanity: 75, baseSpeed: 1.0, variableSpeed: [1.0, 2.75],
+        profile: {
+            "Threat Profile": "An entity characterized by rapid aging, starting as a dangerous foe and becoming weaker over time.",
+            "Definitive Tells": "1. **Aging Mechanic:** Starts 'young' with a high hunt threshold (75% sanity) and fast speed (up to 2.75 m/s). Every 1-2 minutes a player is nearby, it can age, permanently reducing its hunt threshold (min 15%) and speed (min 1.0 m/s). Its activity also decreases.",
+            "Diagnostic Protocol": "The 'Aging Test.' Observe a noticeable decrease in hunt speed and general activity across multiple hunts over a long investigation. A Ouija board can confirm by asking its age at different times."
+        }
+    }
+];
+
+const tellData = {
+    "The Mimic": [
+        { id: "mimic_orbs", text: "Ghost Orbs are present (Guaranteed Tell)" },
+    ],
+    "Hunt Behavior": [
+        { id: "fast_los", text: "Very slow, then very fast with Line of Sight (Revenant)" },
+        { id: "fast_far_slow_close", text: "Very fast when far, very slow when close (Deogen)" },
+        { id: "speed_by_temp", text: "Speed changes between rooms (Hantu)" },
+        { id: "electronics_speed_boost", text: "Speeds up near active electronics (Raiju)" },
+        { id: "breaker_on_speed", text: "Fast when chasing from far with breaker ON (Jinn)" },
+        { id: "sanity_speed", text: "Gets faster as sanity drops (Moroi)" },
+        { id: "aging_mechanic", text: "Fast early, gets slower over time (Thaye)" },
+        { id: "variable_hunt_speed", text: "Hunt speed is slightly different between hunts (The Twins)" },
+        { id: "targets_one_player", text: "Always chases the same player (Banshee)" },
+    ],
+    "Hunt Sanity & Frequency": [
+        { id: "hunt_early", text: "Hunted above 65% sanity (Demon)" },
+        { id: "hunt_voice_early", text: "Hunted early after someone talked (Yokai)" },
+        { id: "hunt_dark_early", text: "Hunted early while room was dark (Mare)" },
+        { id: "shy_hunt", text: "Won't hunt with players in the room (Shade)" },
+    ],
+    "Visual Tells (Hunt)": [
+        { id: "slow_blink_hunt", text: "Mostly invisible during hunt (Phantom)" },
+        { id: "high_visibility_hunt", text: "Mostly visible during hunt (Oni)" },
+        { id: "shapeshift_hunt", text: "Changed ghost model during hunt (Obake)" },
+        { id: "freezing_breath_hunt", text: "Visible freezing breath during hunt (Hantu)" },
+    ],
+    "Auditory Tells (Hunt)": [
+        { id: "quiet_hunt_footsteps", text: "Footsteps only heard at close range (Myling)" },
+        { id: "short_range_hearing", text: "Can't hear you from far away during hunt (Yokai)" },
+    ],
+    "Object & Environment Interactions": [
+        { id: "multi_throw", text: "Threw multiple items at once (Poltergeist)" },
+        { id: "twin_teraction", text: "Two interactions in different places at once (The Twins)" },
+        { id: "door_slam_sanity", text: "Slammed a door shut, causing sanity drop (Yurei)" },
+        { id: "no_salt_footprints", text: "Walked over salt with no disturbance (Wraith)" },
+        { id: "no_room_change", text: "Has not changed its favorite room (Goryo)" },
+    ],
+    "Entity Prohibitions (What it CAN'T do)": [
+        { id: "no_breaker_off", text: "Never turns the fuse box OFF (Jinn)" },
+        { id: "no_light_on", text: "Never turns a light switch ON (Mare)" },
+        { id: "no_airball", text: "Never did a 'mist ball' ghost event (Oni)" },
+    ],
+    "Special Tests & Abilities": [
+        { id: "smudge_180s", text: "Smudge prevented hunt for 3 minutes (Spirit)" },
+        { id: "smudge_60s", text: "Smudge only prevented hunt for 1 minute (Demon)" },
+        { id: "smudge_12s", text: "Smudge blinded it for 12 seconds in a hunt (Moroi)" },
+        { id: "fire_prevents_hunt", text: "Fire (candle/lighter) prevents it from hunting (Onryo)" },
+        { id: "third_extinguish_hunts", text: "Hunted immediately after blowing out 3rd flame (Onryo)" },
+        { id: "sanity_curse", text: "Sanity drains quickly after Spirit Box/Paramic (Moroi)" },
+        { id: "teleport_ability", text: "Teleported, EMF at origin point (Wraith)" },
+        { id: "photo_disappears", text: "Disappeared when a photo was taken of it (Phantom)" },
+        { id: "extended_flicker_range", text: "Electronics flicker from 15m away (Raiju)" },
+        { id: "banshee_scream", text: "Heard a unique scream on Parabolic Mic (Banshee)" },
+        { id: "deo_breathing", text: "Heard heavy breathing on Spirit Box up close (Deogen)" }
+    ]
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const app = {
+        ghosts: ghostData,
+        tells: tellData,
+        activeFilters: new Set(),
+        charts: {},
+
+        init() {
+            this.setupTabs();
+            this.populateTells();
+            this.renderAllGhosts(this.ghosts, 'ghosts-grid');
+            this.renderAllGhosts(this.ghosts, 'compendium-grid');
+            this.setupEventListeners();
+            this.updateGhostCount();
+        },
+
+        setupTabs() {
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.dataset.tab;
+
+                    tabs.forEach(t => t.classList.remove('tab-active', 'bg-teal-600', 'text-white'));
+                    tabs.forEach(t => t.classList.add('tab-inactive', 'bg-slate-100', 'text-slate-600'));
+                    
+                    tab.classList.remove('tab-inactive', 'bg-slate-100', 'text-slate-600');
+                    tab.classList.add('tab-active', 'bg-teal-600', 'text-white');
+
+                    tabContents.forEach(content => {
+                        content.classList.add('hidden');
+                    });
+
+                    document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+                    if (tabName === 'analysis' && !this.charts.sanity) {
+                        this.createSanityChart();
+                        this.createSpeedChart();
+                    }
+                });
+            });
+
+            tabs[0].click();
+        },
+        
+        setupEventListeners() {
+            document.getElementById('reset-filters').addEventListener('click', () => this.resetFilters());
+            document.getElementById('search-bar').addEventListener('input', (e) => this.filterCompendium(e.target.value));
+
+            const modalCloseButtons = ['modal-close', 'modal-close-footer', 'modal-container'];
+            modalCloseButtons.forEach(id => {
+                document.getElementById(id).addEventListener('click', (e) => {
+                    if (e.target.id === id) this.closeModal();
+                });
+            });
+        },
+
+        populateTells() {
+            const container = document.getElementById('tells-container');
+            container.innerHTML = '';
+            for (const category in this.tells) {
+                const categoryDiv = document.createElement('div');
+                const categoryTitle = document.createElement('h3');
+                categoryTitle.className = 'font-semibold text-lg text-slate-700 mb-2';
+                categoryTitle.textContent = category;
+                categoryDiv.appendChild(categoryTitle);
+
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'flex flex-wrap gap-2';
+
+                this.tells[category].forEach(tell => {
+                    const button = document.createElement('button');
+                    button.dataset.tellId = tell.id;
+                    button.textContent = tell.text;
+                    button.className = 'tell-btn tell-btn-inactive text-sm px-3 py-1.5 rounded-full shadow-sm border border-slate-200 transition-all duration-200 ease-in-out';
+                    button.addEventListener('click', () => this.toggleFilter(tell.id, button));
+                    buttonsDiv.appendChild(button);
+                });
+                categoryDiv.appendChild(buttonsDiv);
+                container.appendChild(categoryDiv);
+            }
+        },
+        
+        toggleFilter(tellId, button) {
+            button.classList.toggle('tell-btn-active');
+            button.classList.toggle('tell-btn-inactive');
+
+            if (this.activeFilters.has(tellId)) {
+                this.activeFilters.delete(tellId);
+            } else {
+                this.activeFilters.add(tellId);
+            }
+            this.filterGhosts();
+        },
+
+        filterGhosts() {
+            if (this.activeFilters.size === 0) {
+                this.renderAllGhosts(this.ghosts, 'ghosts-grid');
+                this.updateGhostCount();
+                return;
+            }
+
+            const filteredGhosts = this.ghosts.filter(ghost => {
+                return Array.from(this.activeFilters).every(filterId => ghost.tells.includes(filterId));
+            });
+            
+            this.renderAllGhosts(filteredGhosts, 'ghosts-grid');
+            this.updateGhostCount();
+        },
+
+        resetFilters() {
+            this.activeFilters.clear();
+            const buttons = document.querySelectorAll('.tell-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('tell-btn-active');
+                btn.classList.add('tell-btn-inactive');
+            });
+            this.filterGhosts();
+        },
+
+        renderAllGhosts(ghostList, gridId) {
+            const grid = document.getElementById(gridId);
+            grid.innerHTML = '';
+            if (ghostList.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-slate-500">No matching ghosts found.</p>`;
+            } else {
+                ghostList.forEach(ghost => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-slate-100 hover:bg-teal-100 border border-slate-200 hover:border-teal-300 p-2 rounded-lg text-center cursor-pointer transition-colors duration-200';
+                    card.innerHTML = `<span class="font-semibold text-slate-800">${ghost.name}</span>`;
+                    card.addEventListener('click', () => this.showModal(ghost));
+                    grid.appendChild(card);
+                });
+            }
+        },
+
+        updateGhostCount() {
+            const count = document.getElementById('ghosts-grid').children.length;
+            document.getElementById('ghost-count').textContent = count;
+        },
+        
+        filterCompendium(searchTerm) {
+            const term = searchTerm.toLowerCase();
+            const filtered = this.ghosts.filter(g => g.name.toLowerCase().includes(term));
+            this.renderAllGhosts(filtered, 'compendium-grid');
+        },
+
+        showModal(ghost) {
+            document.getElementById('modal-title').textContent = ghost.name;
+            const body = document.getElementById('modal-body');
+            body.innerHTML = '';
+
+            for (const sectionTitle in ghost.profile) {
+                const sectionDiv = document.createElement('div');
+                const title = document.createElement('h3');
+                title.className = 'font-bold text-lg text-teal-700 mb-1';
+                title.textContent = sectionTitle;
+                
+                const content = document.createElement('p');
+                content.className = 'text-slate-700';
+                
+                let processedText = ghost.profile[sectionTitle];
+                processedText = processedText.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-slate-800">$1</strong>');
+                content.innerHTML = processedText;
+
+                sectionDiv.appendChild(title);
+                sectionDiv.appendChild(content);
+                body.appendChild(sectionDiv);
+            }
+
+            document.getElementById('modal-container').classList.remove('hidden');
+        },
+
+        closeModal() {
+            document.getElementById('modal-container').classList.add('hidden');
+        },
+
+        createSanityChart() {
+            const ctx = document.getElementById('sanityChart').getContext('2d');
+            const sortedGhosts = [...this.ghosts].filter(g => g.id !== 'the_mimic').sort((a, b) => b.huntSanity - a.huntSanity);
+
+            const labels = sortedGhosts.map(g => g.name);
+            const data = sortedGhosts.map(g => g.huntSanity);
+
+            this.charts.sanity = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Hunt Sanity Threshold (%)',
+                        data: data,
+                        backgroundColor: '#14b8a6', // teal-500
+                        borderColor: '#0d9488', // teal-600
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Average Sanity (%)' }
+                        },
+                        y: {
+                            ticks: { autoSkip: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.x !== null) {
+                                        label += context.parsed.x + '%';
+                                    }
+                                    const ghostName = context.label;
+                                    let note = '';
+                                    if(ghostName === 'Mare') note = ' (in dark room)';
+                                    if(ghostName === 'Yokai' || ghostName === 'Raiju') note = ' (if condition met)';
+                                    return label + note;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        },
+
+        createSpeedChart() {
+            const ctx = document.getElementById('speedChart').getContext('2d');
+            const sortedGhosts = [...this.ghosts].filter(g => g.id !== 'the_mimic').sort((a, b) => b.variableSpeed[1] - a.variableSpeed[1]);
+
+            const labels = sortedGhosts.map(g => g.name);
+            const data = sortedGhosts.map(g => g.variableSpeed);
+
+            this.charts.speed = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Hunt Speed Range (m/s)',
+                        data: data,
+                        backgroundColor: '#2dd4bf', // teal-400
+                        borderColor: '#14b8a6', // teal-500
+                        borderWidth: 1,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                         x: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Speed (m/s)' }
+                        },
+                        y: {
+                           ticks: { autoSkip: false }
+                        }
+                    },
+                     plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    const value = context.raw;
+                                    if (value[0] === value[1]) {
+                                        label += value[0].toFixed(2) + ' m/s';
+                                    } else {
+                                        label += `${value[0].toFixed(2)} - ${value[1].toFixed(2)} m/s`;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    };
+
+    app.init();
+});
+</script>
+</body>
+</html>
